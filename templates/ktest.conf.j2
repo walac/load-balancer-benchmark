@@ -1,0 +1,45 @@
+MACHINE = {{ machine }}
+SSH_USER = {{ ssh_user|default("root", true) }}
+ROOT_DIR = {{ root_dir|default("${PWD}", true) }}
+OUTPUT_DIR = ${ROOT_DIR}/build
+LOG_FILE = ktest.log
+LOCALVERSION = -ktest
+BUILD_TARGET = arch/x86/boot/bzImage
+CLOSE_CONSOLE_SIGNAL = KILL
+GRUB_FILE = {{ grub_file|default("/etc/grub2/grub.cfg", true) }}
+REBOOT_TYPE = grub2bls
+GRUB_REBOOT = grub2-reboot
+GRUB_MENU = {{ grub_menu|default("Test-Kernel", true) }}
+POWER_CYCLE = ssh ${SSH_USER}@${MACHINE} reboot
+CONSOLE = console ${MACHINE}
+TIMEOUT = {{ timeout|default("480", true) }}
+TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
+BUILD_OPTIONS = -j{{ host_cpus }}
+BUILD_DIR = ${ROOT_DIR}/{{ repos[repo].repo }}
+
+{% for version in repos[repo].versions %}
+##############################################################################
+TEST_START
+MIN_CONFIG = ${ROOT_DIR}/{{ repos[repo].config }}
+TEST_TYPE = build
+CHECKOUT = {{ version }}
+BUILD_TYPE = olddefconfig
+
+{% for nr_cpus in num_cpus %}
+
+#-----------------------------------------------------------------------------
+TEST_START
+MIN_CONFIG = ${ROOT_DIR}/{{ repos[repo].config }}
+BUILD_NOCLEAN = 1
+TEST_TYPE = install
+BUILD_TYPE = olddefconfig
+PRE_INSTALL = ssh ${SSH_USER}@${MACHINE} "rm -rf /boot/*${LOCALVERSION}* /boot/loader/entries/*${LOCALVERSION}* /lib/modules/*${LOCALVERSION}*"
+POST_INSTALL = ssh ${SSH_USER}@${MACHINE} "/usr/bin/dracut -f /boot/initramfs-${KERNEL_VERSION}.img ${KERNEL_VERSION} && /usr/sbin/grubby --add-kernel=${TARGET_IMAGE} --copy-default --args=nr_cpus={{ nr_cpus }} --title=${GRUB_MENU} --initrd=/boot/initramfs-${KERNEL_VERSION}.img"
+REBOOT_ON_SUCCESS = 0
+
+TEST_START
+TEST_TYPE = test
+BUILD_TYPE = nobuild
+TEST = python3 ${ROOT_DIR}/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
+{% endfor %}
+{% endfor %}

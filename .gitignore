@@ -1,0 +1,5 @@
+__pycache__/
+*.json
+ktest*.conf
+ktest.log
+build/*
