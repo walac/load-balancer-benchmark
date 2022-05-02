@@ -20,7 +20,7 @@ BUILD_DIR = ${ROOT_DIR}/{{ repos[repo].repo }}
 {% for version in repos[repo].versions %}
 ##############################################################################
 TEST_START
-MIN_CONFIG = ${ROOT_DIR}/{{ repos[repo].config }}
+MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
 TEST_TYPE = build
 CHECKOUT = {{ version }}
 BUILD_TYPE = olddefconfig
@@ -29,7 +29,7 @@ BUILD_TYPE = olddefconfig
 
 #-----------------------------------------------------------------------------
 TEST_START
-MIN_CONFIG = ${ROOT_DIR}/{{ repos[repo].config }}
+MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
 BUILD_NOCLEAN = 1
 TEST_TYPE = install
 BUILD_TYPE = olddefconfig
