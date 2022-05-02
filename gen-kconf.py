@@ -48,7 +48,8 @@ def main():
 
     template = env.get_template('ktest.conf.j2')
 
-    for repo in data['repos']:
+    repos = data['repos']
+    for repo in filter(lambda r: repos[r]['versions'], repos):
         kconf = template.render(data, repo=repo)
         with open(f'ktest-{repo}.conf', 'w') as f:
             f.write(kconf)

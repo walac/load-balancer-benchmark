@@ -27,8 +27,7 @@ repos:
   linux_rt:
     repo: repos/linux-stable-rt
     config: configs/configs/kernel-rt-5.14.0-x86_64.config
-    versions:
-      - 5.10-rt
+    versions: []
 
   linux_rt_devel:
     repo: repos/linux-rt-devel
