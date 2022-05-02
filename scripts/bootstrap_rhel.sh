@@ -10,3 +10,5 @@ echo isolated_cores= >> /etc/tuned/realtime-variables.conf
 
 systemctl start tuned
 tuned-adm profile realtime
+
+mkdir /root/json
