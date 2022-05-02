@@ -1,4 +1,7 @@
 #!/bin/bash -vex
+#
+# Install and configure the machine in which we run the benchmark
+#
 
 yum install -y \
     python3-pyyaml \
