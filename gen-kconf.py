@@ -6,6 +6,11 @@ import jinja2
 import multiprocessing
 
 
+def set_value(val, key, data):
+    if val is not None:
+        data[key] = val
+
+
 def main():
     cmdline_parser = argparse.ArgumentParser(
         description='Generate the ktest.conf script')
@@ -26,16 +31,33 @@ def main():
                                 default=None,
                                 help='the target machine host name')
 
+    cmdline_parser.add_argument(
+        '-d',
+        '--duration',
+        dest='duration',
+        metavar='DURATION',
+        action='store',
+        default=None,
+        help='The duration to run the benchmark for each test case')
+
+    cmdline_parser.add_argument(
+        '-c',
+        '--cfg',
+        dest='cfg',
+        metavar='CFG',
+        action='store',
+        default='kconf.yml',
+        help=
+        'Path to the configuration file containing the data to the template')
+
     args = cmdline_parser.parse_args()
 
-    with open('kconf.yml', 'r') as f:
+    with open(args.cfg, 'r') as f:
         data = yaml.load(f, yaml.SafeLoader)
 
-    if args.root_dir is not None:
-        data['root_dir'] = args.root_dir
-
-    if args.machine is not None:
-        data['machine'] = args.machine
+    set_value(args.root_dir, 'root_dir', data)
+    set_value(args.machine, 'machine', data)
+    set_value(args.duration, 'duration', data)
 
     data['host_cpus'] = multiprocessing.cpu_count()
 
