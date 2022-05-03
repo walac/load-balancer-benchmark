@@ -40,7 +40,7 @@ REBOOT_ON_SUCCESS = 0
 TEST_START
 TEST_TYPE = test
 BUILD_TYPE = nobuild
-PRE_TEST = scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:/tmp
+PRE_TEST = ssh @{ROOT_DIR}@{SSH_USER} rm -rf rteval-* && scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:/tmp
 TEST = ssh ${SSH_USER}@${MACHINE} /tmp/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
 {% endfor %}
 {% endfor %}
