@@ -100,7 +100,7 @@ int syscall__exit(struct pt_regs *ctx)
     return 0;
 }
 
-int kprobe__load_balance(struct pt_regs *ctx)
+int kfunc__load_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
@@ -111,7 +111,7 @@ int kprobe__load_balance(struct pt_regs *ctx)
     return 0;
 }
 
-int kretprobe__load_balance(struct pt_regs *ctx)
+int kretfunc__load_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
