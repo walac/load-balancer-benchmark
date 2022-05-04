@@ -162,9 +162,7 @@ class Tracer(object):
 
     def _on_lb_trace(self, cpu, data, size):
         evt = self.b['events'].event(data)
-        stack_traces = self.b.get_table('stack_traces')
-        caller = next(stack_traces.walk(evt.stack_id))
-        if self.b.ksym(caller) == b'newidle_balance':
+        if self._is_called_by_newidle_balance(evt.stack_id):
             self.trace_cb(evt.delay)
 
     def _on_start(self, cpu, data, size):
@@ -173,6 +171,15 @@ class Tracer(object):
     def _on_stop(self, cpu, data, size):
         print('Stopping tracer...')
         self.quit = True
+
+    def _is_called_by_newidle_balance(self, stack_id):
+        stack_traces = self.b.get_table('stack_traces')
+
+        for fn in stack_traces.walk(stack_id):
+            if self.b.ksym(fn) == b'newidle_balance':
+                return True
+
+        return False
 
 
 class RtEval(object):
