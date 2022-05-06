@@ -8,7 +8,7 @@ import re
 import json
 import argparse
 import os.path
-import resource
+import sortedcontainers
 
 prog = """
 #include <linux/sched.h>
@@ -327,9 +327,21 @@ class Main(object):
                                     default='/root',
                                     help='directory where to save the results')
 
+        cmdline_parser.add_argument(
+            '-n',
+            '--num-measurements',
+            dest='n',
+            action='store',
+            metavar='N',
+            default=100000,
+            type=int,
+            help=
+            'The number of measurements to collect. It keeps the N largest measurements'
+        )
+
         self.args = cmdline_parser.parse_args()
 
-        self.measurements = []
+        self.measurements = sortedcontainers.SortedList()
         self.tracer = Tracer(self._lb_callback)
         self.rteval = RtEval(self.args.duration)
 
@@ -337,7 +349,7 @@ class Main(object):
         self.tracer.loop()
         parser = RtEvalOutputParser(self.rteval.wait())
         o = parser.output
-        o['loadBalanceTimes'] = self.measurements
+        o['loadBalanceTimes'] = list(self.measurements.islice())
         kernel = o['kernel']
         num_cpus = o['cpuCores']
         filename = f'{kernel}_{num_cpus}cpus.json'
@@ -345,7 +357,9 @@ class Main(object):
             json.dump(o, f, indent=2)
 
     def _lb_callback(self, measurement):
-        self.measurements.append(measurement)
+        self.measurements.add(measurement)
+        if len(self.measurements) > self.args.n:
+            self.measurements.pop(0)
 
 
 if __name__ == '__main__':

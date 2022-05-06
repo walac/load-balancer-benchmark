@@ -9,6 +9,8 @@ yum install -y \
     rteval \
     tuned-profiles-realtime
 
+pip3 install sortedcontainers
+
 echo isolated_cores= >> /etc/tuned/realtime-variables.conf
 
 systemctl start tuned
