@@ -17,8 +17,6 @@ struct lb_info {
     // the time it took in the load_balancer() call,
     // in nanoseconds
     u64 delay; 
-
-    u64 stack_id;
 };
 
 // hold percpu integer data
@@ -28,11 +26,6 @@ BPF_HASH(ct_running, int, int);
 
 // the key to access the load_balancer() timestamp
 #define LB_TS_KEY 0
-
-// we are only interested in the load_balancer() calls
-// from newidle_balance(), so we grab the caller to compare
-// it later
-BPF_STACK_TRACE(stack_traces, 10);
 
 BPF_PERF_OUTPUT(events);
 BPF_PERF_OUTPUT(stop);
@@ -100,7 +93,7 @@ int syscall__exit(struct pt_regs *ctx)
     return 0;
 }
 
-int kfunc__load_balance(struct pt_regs *ctx)
+int kfunc__newidle_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
@@ -111,7 +104,7 @@ int kfunc__load_balance(struct pt_regs *ctx)
     return 0;
 }
 
-int kretfunc__load_balance(struct pt_regs *ctx)
+int kretfunc__newidle_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
@@ -121,16 +114,13 @@ int kretfunc__load_balance(struct pt_regs *ctx)
     if (!ts)
         return 0;
 
-    int id = stack_traces.get_stackid(ctx, 0);
-    if (id < 0)
-        return 0;
-
     struct lb_info data = {
         .delay = bpf_ktime_get_ns() - *ts,
-        .stack_id = id,
     };
 
     events.perf_submit(ctx, &data, sizeof(data));
+
+    local_cpu_data.delete(&key);
 
     return 0;
 }
@@ -162,8 +152,7 @@ class Tracer(object):
 
     def _on_lb_trace(self, cpu, data, size):
         evt = self.b['events'].event(data)
-        if self._is_called_by_newidle_balance(evt.stack_id):
-            self.trace_cb(evt.delay)
+        self.trace_cb(evt.delay)
 
     def _on_start(self, cpu, data, size):
         print('Starting tracer...')
@@ -171,15 +160,6 @@ class Tracer(object):
     def _on_stop(self, cpu, data, size):
         print('Stopping tracer...')
         self.quit = True
-
-    def _is_called_by_newidle_balance(self, stack_id):
-        stack_traces = self.b.get_table('stack_traces')
-
-        for fn in stack_traces.walk(stack_id):
-            if self.b.ksym(fn) == b'newidle_balance':
-                return True
-
-        return False
 
 
 class RtEval(object):
