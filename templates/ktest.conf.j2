@@ -17,15 +17,12 @@ TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
 BUILD_OPTIONS = -j{{ host_cpus }}
 BUILD_DIR = ${ROOT_DIR}/{{ repos[repo].repo }}
 
-{% for version in repos[repo].versions %}
 ##############################################################################
 TEST_START
 MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
 TEST_TYPE = build
 CHECKOUT = {{ version }}
 BUILD_TYPE = olddefconfig
-
-{% for nr_cpus in num_cpus %}
 
 #-----------------------------------------------------------------------------
 TEST_START
@@ -42,5 +39,3 @@ TEST_TYPE = test
 BUILD_TYPE = nobuild
 PRE_TEST = ssh ${SSH_USER}@${MACHINE} rm -rf rteval-* && scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:/tmp
 TEST = ssh ${SSH_USER}@${MACHINE} /tmp/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
-{% endfor %}
-{% endfor %}

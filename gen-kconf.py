@@ -50,6 +50,15 @@ def main():
         help=
         'Path to the configuration file containing the data to the template')
 
+    cmdline_parser.add_argument(
+        '-o',
+        '--output-dir',
+        dest='output_dir',
+        metavar='DIR',
+        action='store',
+        default='ktest_confs',
+        help='Output directory of the ktest config files')
+
     args = cmdline_parser.parse_args()
 
     with open(args.cfg, 'r') as f:
@@ -71,10 +80,18 @@ def main():
     template = env.get_template('ktest.conf.j2')
 
     repos = data['repos']
+    ncpus_list = data['num_cpus']
     for repo in filter(lambda r: repos[r]['versions'], repos):
-        kconf = template.render(data, repo=repo)
-        with open(f'ktest-{repo}.conf', 'w') as f:
-            f.write(kconf)
+        for version in repos[repo]['versions']:
+            for nr_cpus in ncpus_list:
+                kconf = template.render(data,
+                                        repo=repo,
+                                        nr_cpus=nr_cpus,
+                                        version=version)
+                with open(
+                        f'{args.output_dir}/ktest-{repo}-{version}-{nr_cpus}cpus.conf',
+                        'w') as f:
+                    f.write(kconf)
 
 
 if __name__ == '__main__':

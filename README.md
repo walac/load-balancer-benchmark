@@ -25,7 +25,7 @@ Source tree
 * lb_bench.py: this is the script that runs the benchmark and saves the the
   results in a json file.
 
-* gen-kconf.py: generate the configuration file to use with ktest
+* gen-kconf.py: generate the configuration filew to use with ktest
 
 * kconf.yml: input data file for the jinja template.
 
@@ -38,5 +38,5 @@ On the host machine:
 
 * `./gen-kconf.py --machine <target-machine-name>`
 
-* `./ktest.pl <ktest-file>`
+* `./ktest.pl ktest_confs/<ktest-file>`
 
