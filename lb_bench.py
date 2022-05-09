@@ -20,7 +20,7 @@ struct lb_info {
 };
 
 // hold percpu integer data
-BPF_PERCPU_HASH(local_cpu_data);
+BPF_PERCPU_ARRAY(local_cpu_data, u64, 1);
 
 BPF_HASH(ct_running, int, int);
 
@@ -99,7 +99,7 @@ int kfunc__load_balance(struct pt_regs *ctx)
         return 0;
 
     u64 ts = bpf_ktime_get_ns();
-    u64 key = LB_TS_KEY;
+    int key = LB_TS_KEY;
     local_cpu_data.update(&key, &ts);
     return 0;
 }
@@ -109,7 +109,7 @@ int kretfunc__load_balance(struct pt_regs *ctx)
     if (!is_cyclictest_running())
         return 0;
 
-    u64 key = LB_TS_KEY;
+    int key = LB_TS_KEY;
     u64 *ts = local_cpu_data.lookup(&key);
     if (!ts)
         return 0;
