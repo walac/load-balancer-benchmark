@@ -4,3 +4,4 @@ ktest*.conf
 ktest.log
 build/*
 ktest_confs/*.conf
+logs/*.log

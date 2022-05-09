@@ -2,6 +2,7 @@ machine: my-target
 grub_file: /boot/efi/EFI/redhat/grub.cfg
 duration: 1h
 remote_output_dir: /root/json
+log_dir: logs
 num_cpus:
   -  10
   -  20
