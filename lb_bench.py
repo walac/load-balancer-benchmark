@@ -93,7 +93,7 @@ int syscall__exit(struct pt_regs *ctx)
     return 0;
 }
 
-int kfunc__newidle_balance(struct pt_regs *ctx)
+int kfunc__load_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
@@ -104,7 +104,7 @@ int kfunc__newidle_balance(struct pt_regs *ctx)
     return 0;
 }
 
-int kretfunc__newidle_balance(struct pt_regs *ctx)
+int kretfunc__load_balance(struct pt_regs *ctx)
 {
     if (!is_cyclictest_running())
         return 0;
