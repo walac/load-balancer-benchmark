@@ -2,7 +2,7 @@ MACHINE = {{ machine }}
 SSH_USER = {{ ssh_user|default("root", true) }}
 ROOT_DIR = {{ root_dir|default("${PWD}", true) }}
 OUTPUT_DIR = ${ROOT_DIR}/build
-LOG_FILE = {{ log_dir }}/ktest-{{ repo }}-{{ version }}-{{nr_cpus}}cpus.log
+LOG_FILE = {{ log_dir }}/ktest-{{ repo }}-{{ version }}.log
 LOCALVERSION = -ktest
 BUILD_TARGET = arch/x86/boot/bzImage
 CLOSE_CONSOLE_SIGNAL = KILL
@@ -16,26 +16,31 @@ TIMEOUT = {{ timeout|default("480", true) }}
 TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
 BUILD_OPTIONS = -j{{ host_cpus }}
 BUILD_DIR = ${ROOT_DIR}/{{ repos[repo].repo }}
+LB_BENCH_PREFIX = /usr/local/bin
 
-##############################################################################
 TEST_START
 MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
 TEST_TYPE = build
 CHECKOUT = {{ version }}
+POST_BUILD = scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:${LB_BENCH_PREFIX}
 BUILD_TYPE = olddefconfig
 
-#-----------------------------------------------------------------------------
 TEST_START
 MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
 BUILD_NOCLEAN = 1
 TEST_TYPE = install
 BUILD_TYPE = olddefconfig
-PRE_INSTALL = ssh ${SSH_USER}@${MACHINE} "rm -rf /boot/*${LOCALVERSION}* /boot/loader/entries/*${LOCALVERSION}* /lib/modules/*${LOCALVERSION}*"
-POST_INSTALL = ssh ${SSH_USER}@${MACHINE} "/usr/bin/dracut -f /boot/initramfs-${KERNEL_VERSION}.img ${KERNEL_VERSION} && /usr/sbin/grubby --add-kernel=${TARGET_IMAGE} --copy-default --args=nr_cpus={{ nr_cpus }} --title=${GRUB_MENU} --initrd=/boot/initramfs-${KERNEL_VERSION}.img"
+PRE_INSTALL = ssh ${SSH_USER}@${MACHINE} "rm -rf /boot/*${LOCALVERSION}* /boot/loader/entries/*${LOCALVERSION}* /lib/modules/*${LOCALVERSION}* rteval-*"
+POST_INSTALL = ssh ${SSH_USER}@${MACHINE} "/usr/bin/dracut -f /boot/initramfs-${KERNEL_VERSION}.img ${KERNEL_VERSION} && /usr/sbin/grubby --add-kernel=${TARGET_IMAGE} --copy-default --title=${GRUB_MENU} --initrd=/boot/initramfs-${KERNEL_VERSION}.img"
 REBOOT_ON_SUCCESS = 0
+
+{% for nr_cpus in num_cpus %}
+#-----------------------------------------------------------------------------
 
 TEST_START
 TEST_TYPE = test
 BUILD_TYPE = nobuild
-PRE_TEST = ssh ${SSH_USER}@${MACHINE} rm -rf rteval-* && scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:/tmp
-TEST = ssh ${SSH_USER}@${MACHINE} /tmp/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
+PRE_TEST = ssh ${SSH_USER}@${MACHINE} "grubby --update-kernel=${TARGET_IMAGE} --args=nr_cpus={{ nr_cpus }}"
+TEST = ssh ${SSH_USER}@${MACHINE} ${LB_BENCH_PREFIX}/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
+
+{% endfor %}

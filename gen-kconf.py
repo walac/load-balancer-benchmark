@@ -83,15 +83,10 @@ def main():
     ncpus_list = data['num_cpus']
     for repo in filter(lambda r: repos[r]['versions'], repos):
         for version in repos[repo]['versions']:
-            for nr_cpus in ncpus_list:
-                kconf = template.render(data,
-                                        repo=repo,
-                                        nr_cpus=nr_cpus,
-                                        version=version)
-                with open(
-                        f'{args.output_dir}/ktest-{repo}-{version}-{nr_cpus}cpus.conf',
-                        'w') as f:
-                    f.write(kconf)
+            kconf = template.render(data, repo=repo, version=version)
+            with open(f'{args.output_dir}/ktest-{repo}-{version}.conf',
+                      'w') as f:
+                f.write(kconf)
 
 
 if __name__ == '__main__':
