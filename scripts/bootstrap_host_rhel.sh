@@ -1,5 +1,7 @@
 #!/bin/bash -vex
 
+dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
 yum group install -y "Development Tools"
 
 yum install -y \
@@ -9,4 +11,5 @@ yum install -y \
     tmux \
     dwarves \
     openssl \
-    openssl-devel
+    openssl-devel \
+    conserver-client
