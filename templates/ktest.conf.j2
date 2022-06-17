@@ -41,6 +41,9 @@ TEST_START
 TEST_TYPE = test
 BUILD_TYPE = nobuild
 PRE_TEST = ssh ${SSH_USER}@${MACHINE} "grubby --update-kernel=${TARGET_IMAGE} --args=nr_cpus={{ nr_cpus }}"
+{% if renew_krb_ticket %}
+POST_TEST = kinit -R
+{% endif %}
 TEST = ssh ${SSH_USER}@${MACHINE} ${LB_BENCH_PREFIX}/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
 
 {% endfor %}

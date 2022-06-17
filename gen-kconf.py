@@ -59,6 +59,12 @@ def main():
         default='ktest_confs',
         help='Output directory of the ktest config files')
 
+    cmdline_parser.add_argument(
+        '-k',
+        dest='renew_krb_ticket',
+        action='store_true',
+        help='Renew the kerberos ticket after each test')
+
     args = cmdline_parser.parse_args()
 
     with open(args.cfg, 'r') as f:
@@ -67,6 +73,7 @@ def main():
     set_value(args.root_dir, 'root_dir', data)
     set_value(args.machine, 'machine', data)
     set_value(args.duration, 'duration', data)
+    set_value(args.renew_krb_ticket, 'renew_krb_ticket', data)
 
     data['host_cpus'] = multiprocessing.cpu_count()
 
