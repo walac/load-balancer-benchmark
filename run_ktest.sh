@@ -1,15 +1,7 @@
 #!/bin/bash -e
 
-kerberos_renew=0
-
 calc() {
     awk "BEGIN { print $* }"
-}
-
-renew_kerberos_ticket() {
-    if [ $kerberos_renew -ne 0 ]; then
-        kinit -R
-    fi
 }
 
 # Parameters for exponential backoff retries
@@ -50,7 +42,6 @@ run_test() {
     i=1
     echo "Run ktest for test case $1"
     while ! ./ktest.pl $1; do
-        renew_kerberos_ticket
         delay=$(exponenial_backoff $i)
         echo "ktest return failed, retrying in $delay seconds..." >&2
         sleep $(exponenial_backoff $i)
@@ -58,24 +49,12 @@ run_test() {
     done
 }
 
-run() {
+main() {
     for i in ktest_confs/*.conf; do
         run_test $i
-        renew_kerberos_ticket
     done;
 }
 
-while getopts ":k" opt; do
-    case $opt in
-        k)
-            kerberos_renew=1
-            ;;
-        ?)
-            echo "Invaid option -$OPTARG" >&2
-            exit 1
-    esac
-done
-
-run
+main
 
 
