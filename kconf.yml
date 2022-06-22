@@ -33,6 +33,7 @@ repos:
       - v5.15
       - v5.16
       - v5.17
+      - v5.18
 
   linux_rt:
     repo: repos/linux-stable-rt
@@ -50,3 +51,4 @@ repos:
       - linux-5.15.y-rt
       - linux-5.16.y-rt
       - linux-5.17.y-rt
+      - linux-5.18.y-rt
