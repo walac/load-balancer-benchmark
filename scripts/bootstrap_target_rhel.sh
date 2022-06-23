@@ -7,7 +7,8 @@ yum install -y \
     python3-pyyaml \
     python3-bcc \
     rteval \
-    tuned-profiles-realtime
+    tuned-profiles-realtime \
+    python3-pip
 
 pip3 install sortedcontainers
 
