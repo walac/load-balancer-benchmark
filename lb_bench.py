@@ -9,6 +9,7 @@ import json
 import argparse
 import os.path
 import sortedcontainers
+import statistics
 
 prog = """
 #include <linux/sched.h>
@@ -304,6 +305,27 @@ class RtEvalOutputParser(object):
         return self._lines.pop().strip()
 
 
+class Accumulator(object):
+
+    def __init__(self, n):
+        self.n = n
+        self.measurements = sortedcontainers.SortedList()
+
+    def add(self, measurement):
+        self.measurements.add(measurement)
+        if len(self.measurements) > self.n:
+            self.measurements.pop(0)
+
+    def max(self):
+        return self.measurements[-1]
+
+    def min(self):
+        return self.measurements[0]
+
+    def mean(self):
+        return statistics.mean(self.measurements)
+
+
 class Main(object):
 
     def __init__(self):
@@ -341,7 +363,7 @@ class Main(object):
 
         self.args = cmdline_parser.parse_args()
 
-        self.measurements = sortedcontainers.SortedList()
+        self.acc = Accumulator(self.args.n)
         self.tracer = Tracer(self._lb_callback)
         self.rteval = RtEval(self.args.duration)
 
@@ -349,7 +371,7 @@ class Main(object):
         self.tracer.loop()
         parser = RtEvalOutputParser(self.rteval.wait())
         o = parser.output
-        o['loadBalanceTimes'] = list(self.measurements.islice())
+        o['loadBalanceTimes'] = list(self.acc.measurements.islice())
         kernel = o['kernel']
         num_cpus = o['cpuCores']
         filename = f'{kernel}_{num_cpus}cpus.json'
@@ -357,9 +379,7 @@ class Main(object):
             json.dump(o, f, indent=2)
 
     def _lb_callback(self, measurement):
-        self.measurements.add(measurement)
-        if len(self.measurements) > self.args.n:
-            self.measurements.pop(0)
+        self.acc.add(measurement)
 
 
 if __name__ == '__main__':
