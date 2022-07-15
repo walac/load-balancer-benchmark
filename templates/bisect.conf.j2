@@ -1,0 +1,34 @@
+MACHINE = {{ machine }}
+SSH_USER = {{ ssh_user|default("root", true) }}
+ROOT_DIR = {{ root_dir|default("${PWD}", true) }}
+OUTPUT_DIR = ${ROOT_DIR}/build
+LOCALVERSION = -bisect
+LOG_FILE = {{ log_dir }}/{{ repo }}-bisect.log
+BUILD_TARGET = arch/x86/boot/bzImage
+CLOSE_CONSOLE_SIGNAL = HUP
+GRUB_FILE = {{ grub_file|default("/etc/grub2/grub.cfg", true) }}
+REBOOT_TYPE = grub2bls
+GRUB_REBOOT = grub2-reboot
+GRUB_MENU = {{ grub_menu|default("Test-Kernel", true) }}
+POWER_CYCLE = ssh ${SSH_USER}@${MACHINE} reboot
+CONSOLE = console ${MACHINE}
+TIMEOUT = {{ timeout|default("480", true) }}
+TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
+BUILD_OPTIONS = -j{{ host_cpus }}
+BUILD_DIR = ${ROOT_DIR}/{{ repo }}
+LB_BENCH_PREFIX = /usr/local/bin
+MIN_CONFIG = ${ROOT_DIR}/{{ config }}
+
+TEST_START
+TEST_TYPE = bisect
+BUILD_TYPE = olddefconfig
+BISECT_GOOD = {{ good }}
+BISECT_BAD = {{ bad }}
+BISECT_TYPE = test
+PRE_INSTALL = ssh ${SSH_USER}@${MACHINE} "rm -rf /boot/*${LOCALVERSION}* /boot/loader/entries/*${LOCALVERSION}* /lib/modules/*${LOCALVERSION}* rteval-*"
+POST_INSTALL = ssh ${SSH_USER}@${MACHINE} "/usr/bin/dracut -f /boot/initramfs-${KERNEL_VERSION}.img ${KERNEL_VERSION} && /usr/sbin/grubby --add-kernel=${TARGET_IMAGE} --copy-default --title=${GRUB_MENU} --initrd=/boot/initramfs-${KERNEL_VERSION}.img && grubby --update-kernel=${TARGET_IMAGE} --args=nr_cpus={{ num_cpus|default("60", true) }}"
+TEST = ssh ${SSH_USER}@${MACHINE} ${LB_BENCH_PREFIX}/run_bisect.py -d {{ duration }} -t {{ threshold }}
+{% if renew_krb_ticket %}
+POST_TEST = kinit -R
+{% endif %}
+
