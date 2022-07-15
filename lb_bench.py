@@ -326,6 +326,20 @@ class Accumulator(object):
         return statistics.mean(self.measurements)
 
 
+class Runner(object):
+
+    def __init__(self, duration, n):
+        self.acc = Accumulator(n)
+        self.tracer = Tracer(self._cb)
+        self.rteval = RtEval(duration)
+
+    def _cb(self, measurement):
+        self.acc.add(measurement)
+
+    def wait(self):
+        self.tracer.loop()
+
+
 class Main(object):
 
     def __init__(self):
@@ -363,23 +377,18 @@ class Main(object):
 
         self.args = cmdline_parser.parse_args()
 
-        self.acc = Accumulator(self.args.n)
-        self.tracer = Tracer(self._lb_callback)
-        self.rteval = RtEval(self.args.duration)
+        self.runner = Runner(self.args.duration, self.args.n)
 
     def wait(self):
-        self.tracer.loop()
-        parser = RtEvalOutputParser(self.rteval.wait())
+        self.runner.wait()
+        parser = RtEvalOutputParser(self.runner.rteval.wait())
         o = parser.output
-        o['loadBalanceTimes'] = list(self.acc.measurements.islice())
+        o['loadBalanceTimes'] = list(self.runner.acc.measurements.islice())
         kernel = o['kernel']
         num_cpus = o['cpuCores']
         filename = f'{kernel}_{num_cpus}cpus.json'
         with open(os.path.join(self.args.output_dir, filename), 'w') as f:
             json.dump(o, f, indent=2)
-
-    def _lb_callback(self, measurement):
-        self.acc.add(measurement)
 
 
 if __name__ == '__main__':
