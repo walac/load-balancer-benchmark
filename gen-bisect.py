@@ -4,6 +4,7 @@ import argparse
 import jinja2
 import multiprocessing
 import os.path
+import os
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
                                 dest='root_dir',
                                 metavar='DIR',
                                 action='store',
-                                default=None,
+                                default=os.getcwd(),
                                 help='the root directory')
 
     cmdline_parser.add_argument('-m',
@@ -23,7 +24,7 @@ def main():
                                 dest='machine',
                                 metavar='MACHINE',
                                 action='store',
-                                default=None,
+                                required=True,
                                 help='the target machine host name')
 
     cmdline_parser.add_argument('-c',
@@ -31,6 +32,7 @@ def main():
                                 dest='config',
                                 action='store',
                                 metavar='CONFIG',
+                                required=True,
                                 help='Path to the kernel config file')
 
     cmdline_parser.add_argument(
@@ -39,7 +41,7 @@ def main():
         dest='duration',
         metavar='DURATION',
         action='store',
-        default=None,
+        required=True,
         help='The duration to run the benchmark for each test case')
 
     cmdline_parser.add_argument(
@@ -62,6 +64,7 @@ def main():
                                 dest='repo',
                                 metavar='REPO',
                                 action='store',
+                                required=True,
                                 help='Path to the kernel repository')
 
     cmdline_parser.add_argument('-g',
@@ -69,6 +72,7 @@ def main():
                                 dest='good',
                                 metavar='SHA1|TAG|BRANCH',
                                 action='store',
+                                required=True,
                                 help='First good commit')
 
     cmdline_parser.add_argument('-b',
@@ -76,6 +80,7 @@ def main():
                                 dest='bad',
                                 metavar='SHA1|TAG|BRANCH',
                                 action='store',
+                                required=True,
                                 help='First bad commit')
 
     cmdline_parser.add_argument(
@@ -84,6 +89,7 @@ def main():
         dest='threshold',
         action='store',
         metavar='THRES',
+        required=True,
         type=int,
         help='Threshold value in us to define if the latency was too high')
 
