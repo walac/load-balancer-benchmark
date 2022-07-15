@@ -16,7 +16,7 @@ TIMEOUT = {{ timeout|default("480", true) }}
 TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
 BUILD_OPTIONS = -j{{ host_cpus }}
 BUILD_DIR = ${ROOT_DIR}/{{ repo }}
-LB_BENCH_PREFIX = /usr/local/bin
+LB_BENCH_PREFIX = ${ROOT_DIR}
 MIN_CONFIG = ${ROOT_DIR}/{{ config }}
 
 TEST_START
