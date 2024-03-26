@@ -1,9 +1,0 @@
-[submodule "repos/linux"]
-	path = repos/linux
-	url = git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-[submodule "repos/linux-stable-rt"]
-	path = repos/linux-stable-rt
-	url = git://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-stable-rt.git
-[submodule "repos/linux-rt-devel"]
-	path = repos/linux-rt-devel
-	url = git://git.kernel.org/pub/scm/linux/kernel/git/rt/linux-rt-devel.git
