@@ -1,6 +1,11 @@
 __pycache__/
-ktest*.conf
+ktest.conf
 ktest.log
 build/*
-ktest_confs/*.conf
-logs/*.log
+*.mod
+*.cmd
+*.mod.*
+*.o
+*.ko
+*.symvers
+*.order

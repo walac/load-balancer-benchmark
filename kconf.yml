@@ -2,7 +2,6 @@ machine: my-target
 grub_file: /boot/efi/EFI/redhat/grub.cfg
 duration: 1h
 remote_output_dir: /root/json
-log_dir: logs
 num_cpus:
   -  10
   -  20
@@ -13,42 +12,3 @@ num_cpus:
   - 120
   - 140
   - 160
-
-configs:
-  linux: configs/kernel-5.18.0-x86_64.config
-  linux_rt: configs/kernel-rt-5.14.0-x86_64.config
-  linux_rt_devel: configs/kernel-rt-5.14.0-x86_64.config
-
-repos:
-  linux:
-    repo: repos/linux
-    config: configs/kernel-5.18.0-x86_64.config
-    versions:
-      - v5.9
-      - v5.10
-      - v5.11
-      - v5.12
-      - v5.13
-      - v5.14
-      - v5.15
-      - v5.16
-      - v5.17
-      - v5.18
-
-  linux_rt:
-    repo: repos/linux-stable-rt
-    versions: []
-
-  linux_rt_devel:
-    repo: repos/linux-rt-devel
-    versions:
-      - linux-5.9.y-rt
-      - linux-5.10.y-rt
-      - linux-5.11.y-rt
-      - linux-5.12.y-rt
-      - linux-5.13.y-rt
-      - linux-5.14.y-rt
-      - linux-5.15.y-rt
-      - linux-5.16.y-rt
-      - linux-5.17.y-rt
-      - linux-5.18.y-rt

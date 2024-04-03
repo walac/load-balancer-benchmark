@@ -5,12 +5,8 @@
 
 yum install -y \
     python3-pyyaml \
-    python3-bcc \
     rteval \
-    tuned-profiles-realtime \
-    python3-pip
-
-pip3 install sortedcontainers
+    tuned-profiles-realtime
 
 echo isolated_cores= >> /etc/tuned/realtime-variables.conf
 

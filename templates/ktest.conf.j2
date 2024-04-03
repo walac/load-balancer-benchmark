@@ -2,7 +2,7 @@ MACHINE = {{ machine }}
 SSH_USER = {{ ssh_user|default("root", true) }}
 ROOT_DIR = {{ root_dir|default("${PWD}", true) }}
 OUTPUT_DIR = ${ROOT_DIR}/build
-LOG_FILE = {{ log_dir }}/ktest-{{ repo }}-{{ version }}.log
+LOG_FILE = ktest.log
 LOCALVERSION = -ktest
 BUILD_TARGET = arch/x86/boot/bzImage
 CLOSE_CONSOLE_SIGNAL = HUP
@@ -15,23 +15,16 @@ CONSOLE = console ${MACHINE}
 TIMEOUT = {{ timeout|default("480", true) }}
 TARGET_IMAGE = /boot/vmlinuz-${KERNEL_VERSION}
 BUILD_OPTIONS = -j{{ host_cpus }}
-BUILD_DIR = ${ROOT_DIR}/{{ repos[repo].repo }}
-LB_BENCH_PREFIX = /usr/local/bin
+BUILD_DIR = {{ build_dir }}
 
 TEST_START
-MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
-TEST_TYPE = build
-CHECKOUT = {{ version }}
-POST_BUILD = scp ${ROOT_DIR}/lb_bench.py ${SSH_USER}@${MACHINE}:${LB_BENCH_PREFIX}
-BUILD_TYPE = olddefconfig
-
-TEST_START
-MIN_CONFIG = ${ROOT_DIR}/{{ configs[repo] }}
+MIN_CONFIG = {{ config }}
 BUILD_NOCLEAN = 1
 TEST_TYPE = install
 BUILD_TYPE = olddefconfig
-PRE_INSTALL = ssh ${SSH_USER}@${MACHINE} "rm -rf /boot/*${LOCALVERSION}* /boot/loader/entries/*${LOCALVERSION}* /lib/modules/*${LOCALVERSION}* rteval-*"
-POST_INSTALL = ssh ${SSH_USER}@${MACHINE} "/usr/bin/dracut -f /boot/initramfs-${KERNEL_VERSION}.img ${KERNEL_VERSION} && /usr/sbin/grubby --add-kernel=${TARGET_IMAGE} --copy-default --title=${GRUB_MENU} --initrd=/boot/initramfs-${KERNEL_VERSION}.img"
+POST_BUILD = ${ROOT_DIR}/scripts/post_build.sh ${ROOT_DIR} ${OUTPUT_DIR}
+PRE_INSTALL = ${ROOT_DIR}/scripts/pre_install.sh ${LOCALVERSION}
+POST_INSTALL = ${ROOT_DIR}/scripts/post_install.sh ${KERNEL_VERSION} ${TARGET_IMAGE} ${GRUB_MENU}
 REBOOT_ON_SUCCESS = 0
 
 {% for nr_cpus in num_cpus %}
@@ -40,10 +33,10 @@ REBOOT_ON_SUCCESS = 0
 TEST_START
 TEST_TYPE = test
 BUILD_TYPE = nobuild
-PRE_TEST = ssh ${SSH_USER}@${MACHINE} "grubby --update-kernel=${TARGET_IMAGE} --args=nr_cpus={{ nr_cpus }}"
+PRE_TEST = ${ROOT_DIR}/scripts/pre_test.sh ${TARGET_IMAGE} {{ nr_cpus  }}
 {% if renew_krb_ticket %}
 POST_TEST = kinit -R
 {% endif %}
-TEST = ssh ${SSH_USER}@${MACHINE} ${LB_BENCH_PREFIX}/lb_bench.py -d {{ duration }} -o {{ remote_output_dir }}
+TEST = ${ROOT_DIR}/scripts/test.sh {{ duration }} {{ remote_output_dir }}
 
 {% endfor %}
