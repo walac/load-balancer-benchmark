@@ -6,6 +6,7 @@
 #include <linux/kprobes.h>
 #include <linux/min_heap.h>
 #include <linux/ktime.h>
+#include <linux/compiler_types.h>
 
 #define LOAD_BALANCE_FN_NAME "load_balance"
 #define NUM_SAMPLES 1000UL
@@ -16,24 +17,17 @@ static struct dentry *dbgfs_root_dir;
 /* collect samples if true */
 static bool sampling = false;
 
-typedef u64 samples_buffer_t[NUM_SAMPLES];
-
 static DEFINE_PER_CPU(u64, timestamp);
 
-static DEFINE_PER_CPU(struct min_heap, heap) = {
-	.data = NULL,
-	.nr = 0,
-	.size = NUM_SAMPLES,
-};
+MIN_HEAP_PREALLOCATED(u64, min_heap, NUM_SAMPLES);
+static DEFINE_PER_CPU(struct min_heap, heap);
 
-static DEFINE_PER_CPU(samples_buffer_t, samples_buffer);
-
-static bool u64_less(const void *lhs, const void *rhs)
+static bool u64_less(const void *lhs, const void *rhs, void *args)
 {
 	return *(u64 *) lhs < *(u64 *) rhs;
 }
 
-static void u64_swap(void *lhs, void *rhs)
+static void u64_swap(void *lhs, void *rhs, void *args)
 {
 	u64 tmp;
 	u64 *a = lhs, *b = rhs;
@@ -44,18 +38,19 @@ static void u64_swap(void *lhs, void *rhs)
 }
 
 static const struct min_heap_callbacks heap_ops = {
-	.elem_size = sizeof(u64),
 	.less = u64_less,
 	.swp = u64_swap,
 };
 
-static void add_sample(struct min_heap *h, u64 sample)
-{
-	if (h->nr < h->size)
-		min_heap_push(h, &sample, &heap_ops);
-	else if (*(u64 *) h->data < sample)
-		min_heap_pop_push(h, &sample, &heap_ops);
-}
+#define add_sample(h, sample)						\
+do {									\
+	compiletime_assert(sizeof(sample) == sizeof(u64),		\
+			   "Samples must be of u64 type");		\
+	if (h->nr < h->size)						\
+		min_heap_push_inline(h, &sample, &heap_ops, NULL);	\
+	else if (*h->data < sample)					\
+		min_heap_pop_push_inline(h, &sample, &heap_ops, NULL);	\
+} while(0)
 
 static int load_balance_entry(struct kprobe *kp, struct pt_regs *regs)
 {
@@ -86,7 +81,6 @@ static size_t buffer_len;
 static ssize_t __format_buffer(size_t i, u64 value)
 {
 	ssize_t ret;
-
 	while ((ret = snprintf(output_buffer + i, buffer_size, "%llu\n", value))
 			>= buffer_size) {
 		buffer_size *= 2;
@@ -99,24 +93,29 @@ static ssize_t __format_buffer(size_t i, u64 value)
 	return ret;
 }
 
-static ssize_t format_buffer(const u64 *samples, size_t count)
+DEFINE_MIN_HEAP(u64, min_heap_tmp);
+
+static ssize_t format_buffer(struct min_heap_tmp *h)
 {
 	ssize_t ret;
-	size_t bi = 0;;
+	size_t buffer_begin = 0;;
 
 	if (!buffer_size) {
-		buffer_size = 2 * sizeof(u64) * count + 1;
+		buffer_size = 2 * sizeof(u64) * h->nr + sizeof(char);
 		output_buffer = kmalloc(buffer_size, GFP_KERNEL);
 		if (unlikely(!output_buffer))
 			return -ENOMEM;
 	}
 
 	output_buffer[0] = '\0';
-	for (size_t i = 0; i < count; ++i) {
-		ret = __format_buffer(bi, samples[i]);
+	while (h->nr) {
+		ret = __format_buffer(buffer_begin, *h->data);
+		min_heap_pop_inline(h, &heap_ops, NULL);
+
 		if (unlikely(ret < 0))
 			return ret;
-		bi += ret;
+
+		buffer_begin += ret;
 	}
 
 	buffer_len = strlen(output_buffer);
@@ -124,24 +123,23 @@ static ssize_t format_buffer(const u64 *samples, size_t count)
 	return 0;
 }
 
-static int summarize_samples(struct min_heap *h)
+static int summarize_samples(struct min_heap_tmp *h)
 {
 	unsigned int cpu;
+	void *data;
 
-	h->nr = 0;
-	h->size = NUM_SAMPLES;
-	h->data = kcalloc(NUM_SAMPLES, sizeof(u64), GFP_KERNEL);
-	if (unlikely(!h->data))
+	data = kcalloc(NUM_SAMPLES, sizeof(u64), GFP_KERNEL);
+	if (unlikely(!data))
 		return -ENOMEM;
+
+	min_heap_init_inline(h, data, NUM_SAMPLES);
 
 	for_each_online_cpu(cpu) {
 		struct min_heap *p = per_cpu_ptr(&heap, cpu);
-		const u64 *buff = p->data;
 
 		for (size_t i = 0; i < p->nr; ++i)
-			add_sample(h, buff[i]);
+			add_sample(h, p->data[i]);
 	}
-
 
 	return 0;
 }
@@ -161,10 +159,11 @@ static struct kretprobe lb_ret = {
 	.maxactive = -1,
 };
 
-static ssize_t dbgfs_write_file_sampling(struct file *file, const char __user *user_buf,
-					size_t count, loff_t *ppos)
+static ssize_t dbgfs_write_file_sampling(struct file *file,
+					 const char __user *user_buf,
+					 size_t count, loff_t *ppos)
 {
-	struct min_heap h;
+	struct min_heap_tmp h;
 	ssize_t ret;
 	int retval;
 
@@ -190,7 +189,7 @@ static ssize_t dbgfs_write_file_sampling(struct file *file, const char __user *u
 			pr_err("disable_kprobe failed: %d\n", retval);
 
 		if (!summarize_samples(&h)) {
-			format_buffer(h.data, h.nr);
+			format_buffer(&h);
 			kfree(h.data);
 		}
 	}
@@ -234,8 +233,8 @@ static const struct file_operations fops_samples = {
 static int __init mod_init(void)
 {
 	struct dentry *entry;
-	int ret;
 	unsigned int cpu;
+	int ret;
 
 	dbgfs_root_dir = debugfs_create_dir(KBUILD_MODNAME, NULL);
 	if (unlikely(IS_ERR(dbgfs_root_dir)))
@@ -264,7 +263,7 @@ static int __init mod_init(void)
 		goto unreg_kprobe;
 
 	for_each_possible_cpu(cpu)
-		per_cpu_ptr(&heap, cpu)->data = per_cpu(samples_buffer, cpu);
+		min_heap_init_inline(per_cpu_ptr(&heap, cpu), NULL, NUM_SAMPLES);
 
 	return 0;
 
