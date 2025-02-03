@@ -8,7 +8,7 @@
 #include <linux/ktime.h>
 #include <linux/compiler_types.h>
 
-#define LOAD_BALANCE_FN_NAME "load_balance"
+#define LOAD_BALANCE_FN_NAME "sched_balance_rq"
 #define NUM_SAMPLES 1000UL
 
 /* root debugfs directory for the module */
